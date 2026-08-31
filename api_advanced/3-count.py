@@ -1,55 +1,30 @@
 #!/usr/bin/python3
-"""Recursively query the Reddit API and count keyword occurrences
-in hot post titles."""
+"""Query Reddit API and print the first 10 hot posts."""
+
 import requests
 
 
-def count_words(subreddit, word_list, instances=None, after=None):
-    """Print a sorted count of given keywords found in hot post titles.
-
-    Recursively pages through the Reddit API. Prints nothing if the
-    subreddit is invalid or no keywords match.
-    """
-    if instances is None:
-        instances = {}
-        normalized = [word.lower() for word in word_list]
-        for word in normalized:
-            instances.setdefault(word, 0)
-
+def top_ten(subreddit):
+    """Print the titles of the first 10 hot posts."""
     url = "https://www.reddit.com/r/{}/hot.json".format(subreddit)
-    headers = {"User-Agent": "alche-scripting:api-advanced:v1.0 (by /u/alche_student)"}
-    params = {"limit": 100, "after": after}
+
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
 
     response = requests.get(
-        url, headers=headers, params=params, allow_redirects=False)
+        url,
+        headers=headers,
+        allow_redirects=False
+    )
 
     if response.status_code != 200:
+        print(None)
         return
 
-    try:
-        data = response.json().get("data", {})
-    except ValueError:
-        return
+    data = response.json()
 
-    children = data.get("children", [])
+    posts = data.get("data", {}).get("children", [])
 
-    for post in children:
-        title = post.get("data", {}).get("title", "")
-        for token in title.lower().split():
-            cleaned = "".join(
-                char for char in token if char.isalnum())
-            if cleaned in instances:
-                instances[cleaned] += 1
-
-    next_after = data.get("after")
-
-    if next_after is not None:
-        count_words(subreddit, word_list, instances, next_after)
-        return
-
-    results = [(word, count) for word, count in instances.items()
-               if count > 0]
-    results.sort(key=lambda item: (-item[1], item[0]))
-
-    for word, count in results:
-        print("{}: {}".format(word, count))
+    for post in posts[:10]:
+        print(post["data"]["title"])
